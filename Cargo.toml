@@ -1,0 +1,10 @@
+[package]
+
+name = "johan"
+version = "0.0.1"
+authors = ["softprops <d.tangren@gmail.com>"]
+
+[dependencies]
+
+rustc-serialize = "*"
+handlebars = "*"
