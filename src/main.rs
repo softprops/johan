@@ -11,26 +11,27 @@ fn main() {
       [_, ref bars] =>
         io::File::open(&Path::new(&bars))
           .and_then(|mut f| f.read_to_string())
-          .ok()
-          .expect("invalid path"),
+          .ok(),
        _ =>
-         "{{.}}".to_string()
+         Some("{{.}}".to_string())
    };
-   let input = if io::stdio::stdin_raw().isatty() {
-     "{}".to_string()
+
+   let json = if io::stdio::stdin_raw().isatty() {
+     Some("{}".to_string())
    } else {
      io::stdin()
        .read_line()
        .ok()
-       .expect("json expected")
-   };
-   let json = Json::from_str(&input)
-     .ok()
-     .expect("malformed json");
+   }.and_then(|input| Json::from_str(&input).ok());
+
    let mut handlebars = Handlebars::new();
-   handlebars.register_template_string("t", template)
-     .ok()
-     .expect("expected template");
-   println!("{}", handlebars.render("t", &json)
-                  .ok().unwrap());
+   let rendered = template
+      .and_then(|bars| handlebars.register_template_string("t", bars).ok())
+      .and_then(|_| json)
+      .and_then(|json| handlebars.render("t", &json).ok());
+
+    match rendered {
+      Some(r) => println!("{}", r),
+      _ => println!("failed to render")
+    }
 }
