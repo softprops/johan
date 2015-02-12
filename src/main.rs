@@ -9,13 +9,12 @@ use std::os;
 fn main() {
    let template = match os::args().as_slice() {
       [_, ref bars] =>
-          io::File::open(&Path::new(&bars))
-            .ok()
-            .expect("invalid path")
-            .read_to_string()
-            .ok()
-            .expect("invalid file"),
-           _ => "{{.}}".to_string()
+        io::File::open(&Path::new(&bars))
+          .and_then(|mut f| f.read_to_string())
+          .ok()
+          .expect("invalid path"),
+       _ =>
+         "{{.}}".to_string()
    };
    let input = if io::stdio::stdin_raw().isatty() {
      "{}".to_string()
