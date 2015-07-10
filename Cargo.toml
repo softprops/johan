@@ -1,15 +1,14 @@
 [package]
 
 name = "johan"
-version = "0.0.1"
+version = "0.1.0"
 description = "pipe json through handlebars tempaltes"
 repository = "https://github.com/softprops/johan"
 authors = ["softprops <d.tangren@gmail.com>"]
 keywords = ["handlebars", "json", "templating", "tools"]
 
 [dependencies]
-
-rustc-serialize = "0.3.6"
-handlebars = "0.6.7"
-docopt = "0.6.55"
-docopt_macros = "0.6.55"
+atty = "0.1.0"
+clap = "1.0"
+handlebars = "0.9"
+rustc-serialize = "0.3.15"
