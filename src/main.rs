@@ -46,8 +46,8 @@ fn template(match_template: Option<&str>, match_file: Option<&str>) -> Option<St
 fn json(input: Option<&str>, inject_env: bool) -> Option<serde_json::Value> {
     match input {
         Some("-") => None,
-        Some(value) => Some(value),
-        _ => Some("{}")
+        None => Some("{}"),
+        value => value
     }
     .map(|i| i.to_owned())
                .or_else(|| {
