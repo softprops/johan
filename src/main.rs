@@ -18,8 +18,8 @@ fn handlebars() -> Handlebars {
                    rc: &mut RenderContext)
                    -> Result<(), RenderError> {
         let param = h.params().get(0).unwrap();
-        let s = c.navigate(rc.get_path(), param);
-        let rendered = serde_json::to_string(&s).unwrap();
+        let val = c.navigate(rc.get_path(), param);
+        let rendered = serde_json::to_string(&val).unwrap();
         try!(rc.writer.write(rendered.into_bytes().as_ref()));
         Ok(())
     }
@@ -41,7 +41,7 @@ fn template(match_template: Option<&str>, match_file: Option<&str>) -> Option<St
     })
 }
 
-fn json(match_input: Option<&str>) -> Option<serde_json::Value> {
+fn json(match_input: Option<&str>, inject_env: bool) -> Option<serde_json::Value> {
     match_input.map(|i| i.to_owned())
                .or_else(|| {
                    if atty::is() {
@@ -54,7 +54,21 @@ fn json(match_input: Option<&str>) -> Option<serde_json::Value> {
                        None
                    }
                })
-               .and_then(|input| serde_json::from_str(&input).ok())
+        .and_then(|input| serde_json::from_str(&input).ok())
+        .and_then(|json| {
+            let mut wrapper = std::collections::BTreeMap::new();
+            wrapper.insert("data", json);
+            if inject_env {
+                let mut env_map = std::collections::BTreeMap::new();
+                for (k, v) in std::env::vars() {
+                    env_map.insert(k,v);
+                }
+                let env = serde_json::value::to_value(&env_map);
+
+                wrapper.insert("env", env);
+            }
+            Some(serde_json::value::to_value(&wrapper))
+        })
 }
 
 fn main() {
@@ -62,10 +76,10 @@ fn main() {
                       .about("applies json data to handlebars templates")
                       .args_from_usage("-t, --template=[TEMPLATE] 'handlebars template string. defaults to printing raw json'
                                         -f, --file=[TEMPLATE_FILE] 'handlebars template file path'
+                                        -e, --env... 'inject env'
                                         [INPUT] 'json data. will read from std input when not provided as an argument'")
                       .get_matches();
-
-    let rendered = json(matches.value_of("INPUT")).and_then(|json| {
+    let rendered = json(matches.value_of("INPUT"), matches.occurrences_of("env") > 0).and_then(|json| {
         template(matches.value_of("template"), matches.value_of("file"))
             .and_then(|bars| handlebars().template_render(&bars, &json).ok())
     });
