@@ -9,6 +9,9 @@ keywords = ["handlebars", "json", "templating", "tools"]
 
 [dependencies]
 atty = "0.1.0"
-clap = "1.0"
-handlebars = "0.9"
-rustc-serialize = "0.3.15"
+clap = "2.4"
+serde_json = "0.7"
+
+[dependencies.handlebars]
+version = "0.16"
+features = ["serde_type"]
