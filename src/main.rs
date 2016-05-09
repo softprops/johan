@@ -5,6 +5,8 @@ extern crate serde_json;
 
 use clap::App;
 use handlebars::{Context, Handlebars, Helper, RenderContext, RenderError};
+use std::collections::BTreeMap;
+use std::env;
 use std::fs::File;
 use std::io;
 use std::io::{Read, Write};
@@ -41,8 +43,13 @@ fn template(match_template: Option<&str>, match_file: Option<&str>) -> Option<St
     })
 }
 
-fn json(match_input: Option<&str>, inject_env: bool) -> Option<serde_json::Value> {
-    match_input.map(|i| i.to_owned())
+fn json(input: Option<&str>, inject_env: bool) -> Option<serde_json::Value> {
+    match input {
+        Some("-") => None,
+        Some(value) => Some(value),
+        _ => Some("{}")
+    }
+    .map(|i| i.to_owned())
                .or_else(|| {
                    if atty::is() {
                        let mut raw = String::new();
@@ -56,11 +63,11 @@ fn json(match_input: Option<&str>, inject_env: bool) -> Option<serde_json::Value
                })
         .and_then(|input| serde_json::from_str(&input).ok())
         .and_then(|json| {
-            let mut wrapper = std::collections::BTreeMap::new();
+            let mut wrapper = BTreeMap::new();
             wrapper.insert("data", json);
             if inject_env {
-                let mut env_map = std::collections::BTreeMap::new();
-                for (k, v) in std::env::vars() {
+                let mut env_map = BTreeMap::new();
+                for (k, v) in env::vars() {
                     env_map.insert(k,v);
                 }
                 let env = serde_json::value::to_value(&env_map);
@@ -74,10 +81,10 @@ fn json(match_input: Option<&str>, inject_env: bool) -> Option<serde_json::Value
 fn main() {
     let matches = App::new("johan")
                       .about("applies json data to handlebars templates")
-                      .args_from_usage("-t, --template=[TEMPLATE] 'handlebars template string. defaults to printing raw json'
+                      .args_from_usage("-t, --template=[TEMPLATE] 'inline handlebars template string. defaults to printing raw json unless file is provided'
                                         -f, --file=[TEMPLATE_FILE] 'handlebars template file path'
                                         -e, --env... 'inject env'
-                                        [INPUT] 'json data. will read from std input when not provided as an argument'")
+                                        [INPUT] 'json data. will read from std input when - is provided as an argument. defaults to {} otherwise'")
                       .get_matches();
     let rendered = json(matches.value_of("INPUT"), matches.occurrences_of("env") > 0).and_then(|json| {
         template(matches.value_of("template"), matches.value_of("file"))
